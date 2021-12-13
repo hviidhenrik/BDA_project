@@ -2,9 +2,9 @@
 
 plot_areas <- function(fitted_model){
   draws <- extract(fitted_model, permuted=T)
-  df <- data.frame(draws$mu) %>% cbind(draws$sigma)
-  vibrations <- df %>% setNames(c(month_names, "sigma"))
-  mcmc_areas(vibrations) + xlab('Vibration')
+  df <- data.frame(draws$mu) # %>% cbind(draws$sigma)
+  vibrations <- df %>% setNames(c(month_names))
+  mcmc_areas(vibrations) + xlab('Vibration\nvelocity [mm/s]')
 }
 
 get_y_and_yrep <- function(df, fitted_model, month_abbr="mar", reps=20){
@@ -25,4 +25,19 @@ plot_predictive_diagnostics <- function(df, fitted_model, month="mar", reps=20,
   p2 <- ys$y %>% ppc_intervals(yrep=ys$yrep)
   p3 <- ys$y %>% ppc_ecdf_overlay(yrep=ys$yrep)
   grid.arrange(p1, p2, p3, nrow = 3)
+}
+
+make_random_subset <- function(df_original, feature_name = "vibr_bear_as_x",
+                               n_samples=1200){
+  while(TRUE){
+    # sample subset and sort on month
+    df <- df_original %>% slice_sample(n=n_samples)
+    df <- df[order(match(df$month, month.abb)), ]
+    df_sample_summary <- df %>% group_by(month) %>% 
+      summarise(across(all_of(feature_name), list(mean = mean, sd = sd)), n=n()) 
+    counts <- df_sample_summary %>% select(n) %>% pull()
+    if(length(counts) == 7 & all(counts > 10))
+      break
+  }
+  return(list(df=df, df_summary=df_sample_summary, counts=counts))
 }

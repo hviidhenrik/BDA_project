@@ -20,12 +20,14 @@ df_grouped_rpm <- df %>% mutate(rpm_rounded = as.character(round(rotation))) %>%
   mutate(rpm_rounded = as.numeric(rpm_rounded))
 
 # filter the df and only keep rows with rotation in a small interval
-df_filtered <- df %>% filter(rotation > 250 & rotation < 320)
+df_filtered <- df %>% filter(rotation > 250 & rotation < 270)
 
 # select important measurements and add a date / month column
 df_filtered <- df_filtered %>% select(c(timelocal, flow, rotation, effect_pump_10,
                                         vibr_bear_as_x, vibr_bear_as_y, 
-                                        vibr_bear_bs_x, vibr_bear_bs_y)) %>% 
+                                        vibr_bear_bs_x, vibr_bear_bs_y,
+                                        vibr_motor_x, vibr_motor_y,
+                                        temp_winding_max)) %>% 
   mutate(month = format(timelocal, format="%b"), 
          month_indicator = as.numeric(as.factor(format(timelocal, format="%m")))) %>%
   select(-timelocal)
