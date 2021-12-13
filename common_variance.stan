@@ -8,12 +8,12 @@ data {
 }
 parameters {
   vector<lower=0>[K] mu;        // group means
-  real<lower=0> sigma; // common standard deviation constrained to be positive
+  real<lower=0> sigma;          // common standard deviation constrained to be positive
 }
 model {
-  mu ~ normal(1, 1);       // weakly informative prior
-  sigma ~ normal(0, 1);        // weakly informative prior
-  y ~ normal(mu[x], sigma); // observation model / likelihood
+  mu ~ normal(1, 1);         // weakly informative prior
+  sigma ~ normal(0, 1);      // weakly informative prior
+  y ~ normal(mu[x], sigma);  // observation model / likelihood
 }
 generated quantities {
   // sample from the predictive distribution

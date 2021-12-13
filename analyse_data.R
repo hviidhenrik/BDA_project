@@ -27,20 +27,21 @@ print(sub_sample$df_summary)
 
 
 # prepare the data for stan
-data_anova <- list(N = dim(df)[1], 
+data <- list(N = dim(df)[1], 
                    K = length(unique(df$month)),
                    N_ypred = max(sub_sample$counts),
                    x = df$month_indicator,
                    y = df %>% select(feature_to_analyse) %>% pull
                    )
 
-# anova - common mean and variance
+### anova - common mean and variance
 fit_anova <- stan(file = "common_variance.stan", 
-                  data = data_anova, seed = 1001, chains=1)
+                  data = data, seed = 1001, chains=1)
 
 # check convergence
-# monitor(fit_anova)
 check_hmc_diagnostics(fit_anova)
+summary_anova <- monitor(fit_anova)
+print(tail(summary_anova, 1))
 
 # plotting
 plot_areas(fit_anova)
@@ -49,20 +50,31 @@ plot_areas(fit_anova)
 # predictive checks
 plot_predictive_diagnostics(df, fit_anova, "oct", reps=20, title="March")
 
-# TODO: make function to check how many y's are outside the predictive distributions
-#       for each y. For 80% prediction intervals, we would expect 20% to be outside
-
 # probabilities
 draws <- extract(fit_anova, permuted = T)
 vibrations <- data.frame(draws$mu) %>% setNames(c(month_names))
 
 paste('P(May > December) = ', mean(vibrations$May > vibrations$Dec))
 
-# hierarchical prior on the mean, common variance
+### hierarchical prior on the mean, common variance
+fit_hier <- stan(file = "common_variance_hierarchical_prior.stan", 
+                 data = data, seed = 1001, chains=1)
 
+# check convergence
+check_hmc_diagnostics(fit_hier)
+summary_hier <- monitor(fit_hier)
+print(tail(summary_hier, 1))
+
+# plotting
+plot_areas(fit_hier)
+
+
+# predictive checks
+plot_predictive_diagnostics(df, fit_hier, "oct", reps=20, title="March")
 
 # model comparison
 # LOO
-# m1 <- loo(fit_anova)
-# loo_compare(m1, m1)
+m1 <- loo(fit_anova)
+m2 <- loo(fit_hier)
+loo_compare(m1, m2)
                                      
