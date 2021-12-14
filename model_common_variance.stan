@@ -38,7 +38,6 @@ generated quantities {
   }
 
   // compute log predictive densities to be used for LOO-CV
-  // to make appropriate comparison to other models, this log density is computed
-  for (i in 1:N)
-    log_lik[i] = normal_lpdf(y[i] | mu[1], sigma);
+  for(i in 1:N)
+	log_lik[i] = normal_lpdf(y[i] | mu[x[i]], sigma);
 }

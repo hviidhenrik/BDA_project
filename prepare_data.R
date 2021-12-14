@@ -6,7 +6,9 @@ Sys.setlocale("LC_ALL","English")
 library(tidyverse)
 library(lubridate)
 
-
+# Raw data is fetched from local hard drive, but this file need not be run for the analysis.
+# If the raw dataset doesn't exist, simply run "analyse_data.r" - it will use the data  
+# included with the repo
 df <- read_csv("C:\\datasets\\SSV cooling water pumps\\data_cwp_pump_10_large.csv")
 df <- df[,-c(3, 16)]
 df <- drop_na(df)
@@ -29,8 +31,9 @@ df_filtered <- df_filtered %>% select(c(timelocal, flow, rotation, effect_pump_1
                                         vibr_motor_x, vibr_motor_y,
                                         temp_winding_max)) %>% 
   mutate(month = format(timelocal, format="%b"), 
-         month_indicator = as.numeric(as.factor(format(timelocal, format="%m")))) %>%
-  select(-timelocal)
+         month_indicator = as.numeric(as.factor(format(timelocal, format="%m"))),
+         month_weekday = as.POSIXct(format(timelocal, format="%Y-%m-%d"))
+         ) %>% relocate(c(month, month_indicator, month_weekday), .after=timelocal)
 
 df_filtered %>% select(c(month, month_indicator)) %>% unique()
 
@@ -38,27 +41,46 @@ df_filtered %>% select(c(month, month_indicator)) %>% unique()
 df_filtered_outliers <- df_filtered %>% group_by(month) %>% 
   summarise(across(everything(), list(min = min, max = max)), n_month = n())
 
-# group data by month and summarise mean and sd 
-df_filtered_grouped_month  <- df_filtered %>% group_by(month) %>% 
+# group data by month and day and summarise mean and sd 
+df_filtered_grouped_day <- df_filtered %>% select(-c(month, month_indicator, timelocal)) %>% group_by(month_weekday) %>% 
+  summarise(across(everything(), list(mean = mean, sd = sd)), n_day = n()) %>% relocate(n_day, .after=month_weekday)
+
+df_filtered_grouped_month  <- df_filtered %>% select(-c(month_weekday, timelocal)) %>% group_by(month) %>% 
   summarise(across(everything(), list(mean = mean, sd = sd)), n_month = n()) %>%
   relocate(n_month, .after=month)
 
 
-
 ## statistics and plots
-
-# plot rotation vs count
-df_grouped_rpm %>% ggplot() + geom_line(aes(rpm_rounded, n))
 
 # plot rotation vs vibrations
 df_grouped_rpm %>% select(c(rpm_rounded, starts_with("vibr_bear"))) %>% 
   pivot_longer(cols = starts_with("vibr_bear"), names_to = "location", values_to = "velocity") %>% 
   ggplot(aes(rpm_rounded, velocity, color=location)) + 
-  geom_line(size=1.5) +
+  geom_line(size=1) +
   labs(title="Vibrations vs pump rotation speed",
        x="Rotation [rpm]",
-       y="Vibration [mm/s]",
-       color="Location")
+       y="Vibration\nvelocity [mm/s]",
+       color="") +
+  theme_classic() +
+  theme(legend.position = "bottom")
+ggsave("figures\\rpm_vs_vibr.png", width=7, height=3.59)
+
+# plot daily average vibration level over time
+df_filtered_grouped_day %>% select(c(month_weekday, vibr_bear_as_x_mean, vibr_bear_as_y_mean,
+                                     vibr_bear_bs_x_mean, vibr_bear_bs_y_mean)) %>% 
+  pivot_longer(cols = starts_with("vibr_bear"), names_to = "location", values_to = "velocity") %>%
+  ggplot(aes(month_weekday, velocity, color=location)) +
+  geom_line(size=1) +
+  labs(title="Vibrations over time",
+       x=NULL,
+       y="Vibration\nvelocity [mm/s]") +
+  theme_classic() + 
+  theme(legend.position = "none")
+ggsave("figures\\time_vs_vibr.png", width=7, height=3.59)
+
+# plot rotation vs count
+df_grouped_rpm %>% ggplot() + geom_line(aes(rpm_rounded, n))
+
 
 # plot vibrations for each months as box plots
 df_filtered %>% ggplot() + 
