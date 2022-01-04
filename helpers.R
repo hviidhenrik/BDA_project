@@ -2,11 +2,11 @@
 
 month_names <- c("Mar", "Apr", "May", "Sep", "Oct", "Nov", "Dec")
 
-plot_areas <- function(fitted_model){
+plot_areas <- function(fitted_model, title="Posterior mean draws"){
   draws <- extract(fitted_model, permuted=T)
   df <- data.frame(draws$mu) # %>% cbind(draws$sigma)
   vibrations <- df %>% setNames(c(month_names))
-  mcmc_areas(vibrations) + xlab('Vibration\nvelocity [mm/s]') + ggtitle("Posterior draws")
+  mcmc_areas(vibrations) + xlab('Vibration\nvelocity [mm/s]') + ggtitle(title)
 }
 
 get_y_and_yrep <- function(df, fitted_model, month_abbr="mar", reps=20){
@@ -65,14 +65,14 @@ make_random_subset2 <- function(df_original, feature_name = "vibr_bear_as_x",
 }
 
 
-plot_loo_diagnostics <- function(loo_object){
+plot_loo_diagnostics <- function(loo_object, title="PSIS-LOO diagnostics"){
   elpd <- round(c(loo_object$estimates[1], loo_object$estimates[4]),2)
   df_diag <- tibble(obs = seq(length(loo_object$diagnostics$pareto_k)[1]), 
                     pareto_k = loo_object$diagnostics$pareto_k, 
                     n_eff = loo_object$diagnostics$n_eff)
   p <- df_diag %>% ggplot() + geom_point(aes(n_eff, pareto_k), color="#4099DA") +
     geom_hline(yintercept = c(0.5, 0.7), lty="dashed", color=c("#B7ADA5", "#E85757")) +
-    labs(title="PSIS-LOO diagnostics", subtitle=paste0("ELPD: ", elpd[1], ", SE: ", elpd[2]),
+    labs(title=title, subtitle=paste0("ELPD: ", elpd[1], ", SE: ", elpd[2]),
          y="Pareto shape k", x="N effective") +
     theme_classic()
   return(p)
